@@ -76,4 +76,4 @@ However, you can manual verify with:
 yarn hardhat verify --constructor-args arguments.js DEPLOYED_CONTRACT_ADDRESS
 ```
 
-# Thank you! & Happy Coding !
+# Happy Coding !
