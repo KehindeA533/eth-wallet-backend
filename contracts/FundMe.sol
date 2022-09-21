@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.8; //0.8.12
+pragma solidity ^0.8.8;
 
-import './PriceConverter.sol';
+import "./PriceConverter.sol";
 
 /**Custom Errors */
 error onlyOwner_NotOwner();
@@ -29,37 +29,26 @@ contract FundMe {
 
     /**Modifiers */
     modifier onlyOwner() {
-        require(msg.sender == i_owner, 'Sender is not owner!!');
-        // if (msg.sender != i_owner) {
-        //     revert onlyOwner_NotOwner();
-        // }
+        if (msg.sender != i_owner) {
+            revert onlyOwner_NotOwner();
+        }
         _;
     }
 
     /**Functions */
+    /// @notice To consume price data, the smart contract reference AggregatorV3Interface, which defines the external functions implemented by Data Feeds.
+    /// @param priceFeedAddress Chainlink Data Feed contracts address
     constructor(address priceFeedAddress) {
         i_owner = msg.sender;
         s_priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
-    receive() external payable {
-        fund();
-    }
-
-    fallback() external payable {
-        fund();
-    }
-
     /// @notice Funds our contract based on the ETH/USD price
     /// @dev This implements price feed as our library
     function fund() public payable {
-        require(
-            msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD,
-            'Didnt send enough ETH!'
-        );
-        // if (msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD) {
-        //     revert fund_NotEnoughEth();
-        // }
+        if (msg.value.getConversionRate(s_priceFeed) < MINIMUM_USD) {
+            revert fund_NotEnoughEth();
+        }
         s_funders.push(msg.sender);
         s_addressToAmountFunded[msg.sender] = msg.value;
         emit Funded(msg.sender, msg.value);
@@ -76,11 +65,18 @@ contract FundMe {
 
         (bool callSuccess, ) = payable(msg.sender).call{
             value: address(this).balance
-        }('');
-        require(callSuccess, 'Send failed');
-        // if (callSuccess) {
-        //     revert withdraw_WithdrawFailed();
-        // }
+        }("");
+        if (!callSuccess) {
+            revert withdraw_WithdrawFailed();
+        }
+    }
+
+    receive() external payable {
+        fund();
+    }
+
+    fallback() external payable {
+        fund();
     }
 
     /** @notice Gets the amount that an address has funded
